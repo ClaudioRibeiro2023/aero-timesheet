@@ -1,0 +1,28 @@
+{
+  "project": "aero-timesheet",
+  "version": "1.0.0",
+  "factory": "aero-studio",
+  "factory_version": "2.2.0",
+  "generated_at": "2026-03-25T22:00:00Z",
+  "template": "nextjs-supabase",
+  "waves_completed": 8,
+  "quality_score": 86,
+  "agents_used": ["planner", "impl-database", "devops", "impl-backend", "impl-frontend", "docs-learning", "quality-gate", "build-test"],
+  "files_generated": 56,
+  "tech_stack": {
+    "framework": "Next.js 14.2",
+    "database": "Supabase (PostgreSQL)",
+    "styling": "Tailwind CSS",
+    "charts": "Recharts",
+    "auth": "Supabase Auth",
+    "deploy": "Netlify"
+  },
+  "features": [
+    "Registro de horas semanal (grid editável)",
+    "Fluxo de aprovação (rascunho→submetido→aprovado/rejeitado)",
+    "Dashboard com KPIs e gráficos",
+    "Relatórios com export PDF",
+    "Gestão de projetos/contratos",
+    "Auth com controle de acesso por cargo"
+  ]
+}

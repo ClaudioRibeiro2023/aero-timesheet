@@ -1,0 +1,735 @@
+{
+  "$schema": "../../../factory/agents/contracts/schemas/wave-0-planning.json",
+  "meta": {
+    "project_name": "aero-timesheet",
+    "template": "crud-app",
+    "planner": "Rafael",
+    "wave": 0,
+    "created_at": "2026-03-27T23:00:00Z",
+    "version": "2.0.0"
+  },
+  "plan": {
+    "phases": [
+      {
+        "id": "phase-1",
+        "name": "Fundacao e Infraestrutura",
+        "wave": 1,
+        "agents": ["Marina", "Carlos"],
+        "parallel": true,
+        "duration_estimate": "1 sessao",
+        "deliverables": [
+          "Schema PostgreSQL completo (6 tabelas, 3 views, triggers, RLS policies)",
+          "Configuracao Supabase Auth (email/password)",
+          "Seed data (3 perfis, 5 projetos, categorias)",
+          "CI lint basico (tsconfig strict)"
+        ]
+      },
+      {
+        "id": "phase-2",
+        "name": "Backend e API",
+        "wave": 2,
+        "agents": ["Lucas"],
+        "parallel": false,
+        "duration_estimate": "1 sessao",
+        "deliverables": [
+          "Server actions para CRUD de timesheet entries",
+          "API route de aprovacao/rejeicao",
+          "API route de exportacao PDF",
+          "Middleware de auth e protecao de rotas",
+          "Validacao Zod em todas as entradas"
+        ]
+      },
+      {
+        "id": "phase-3",
+        "name": "Frontend e UI",
+        "wave": 3,
+        "agents": ["Sofia"],
+        "parallel": false,
+        "duration_estimate": "1-2 sessoes",
+        "deliverables": [
+          "Layout shell (sidebar, header, user menu)",
+          "Pagina de login com Supabase Auth",
+          "Grid de timesheet semanal com edicao inline",
+          "Pagina de aprovacoes para gestores",
+          "Dashboard com graficos Recharts",
+          "Pagina de gerenciamento de projetos",
+          "Componentes UI (Button, Card, Badge, Input, Select, EmptyState)",
+          "Responsividade mobile"
+        ]
+      },
+      {
+        "id": "phase-4",
+        "name": "Documentacao",
+        "wave": 4,
+        "agents": ["Amelia"],
+        "parallel": false,
+        "duration_estimate": "0.5 sessao",
+        "deliverables": [
+          "README.md completo",
+          "ARCHITECTURE.md",
+          "Guia de deploy",
+          "Database docs"
+        ]
+      },
+      {
+        "id": "phase-5",
+        "name": "Deploy",
+        "wave": 5,
+        "agents": ["Marcus", "Gabriela"],
+        "parallel": false,
+        "duration_estimate": "0.5 sessao",
+        "deliverables": [
+          "Deploy Netlify com @netlify/plugin-nextjs",
+          "Configuracao de environment variables",
+          "Health check pos-deploy"
+        ]
+      },
+      {
+        "id": "phase-6",
+        "name": "Quality Gate",
+        "wave": 6,
+        "agents": ["Ana"],
+        "parallel": false,
+        "duration_estimate": "0.5 sessao",
+        "deliverables": [
+          "Auditoria dos 7 quality gates",
+          "Relatorio de qualidade com score"
+        ]
+      },
+      {
+        "id": "phase-7",
+        "name": "Build e Smoke Tests",
+        "wave": 7,
+        "agents": ["Tiago", "Leandro"],
+        "parallel": false,
+        "duration_estimate": "0.5 sessao",
+        "deliverables": [
+          "Build de producao sem erros",
+          "8 smoke tests executados",
+          "Correction loop com Fernanda se necessario"
+        ]
+      }
+    ],
+    "architecture": {
+      "pattern": "monolito-modular",
+      "stack": {
+        "framework": "Next.js 14.2 (App Router)",
+        "database": "Supabase (PostgreSQL 15 + Auth + RLS + Realtime)",
+        "styling": "Tailwind CSS 3.4 + @tailwindcss/forms",
+        "charts": "Recharts 2.15",
+        "language": "TypeScript 5.7 (strict mode)",
+        "deploy": "Netlify (plugin @netlify/plugin-nextjs)",
+        "pdf": "@react-pdf/renderer 4.x",
+        "validation": "Zod 3.24",
+        "icons": "Lucide React",
+        "dates": "date-fns 4.x"
+      },
+      "auth_strategy": "Supabase Auth com email/password",
+      "data_access": "Supabase client (browser) + server (SSR) com RLS enforced",
+      "state_management": "React hooks nativos (useState, useReducer) — sem store externo",
+      "routing": "Next.js App Router com route groups: (public) e (authenticated)"
+    },
+    "adrs": [
+      {
+        "id": "ADR-001",
+        "titulo": "Grid semanal como paradigma de entrada de horas",
+        "decisao": "Usar formato de grid segunda-a-domingo com uma linha por projeto/categoria, permitindo edicao inline de todas as horas da semana simultaneamente.",
+        "justificativa": "Padrao de mercado para timesheets corporativos (SAP, Oracle HCM, Harvest). Reduz friccao — usuario preenche toda a semana de uma vez em vez de fazer 5-7 lancamentos separados. Totalizacao automatica por linha e coluna.",
+        "alternativa_rejeitada": "Lancamento diario individual por entrada — mais cliques, UX inferior, nao escala para equipes maiores."
+      },
+      {
+        "id": "ADR-002",
+        "titulo": "RLS como camada primaria de seguranca com 3 niveis de acesso",
+        "decisao": "Implementar Row Level Security do PostgreSQL via Supabase com 3 perfis: colaborador (ve apenas seus dados), gestor (ve dados dos subordinados diretos), admin (ve tudo). RLS policies aplicadas em TODAS as tabelas com dados sensiveis.",
+        "justificativa": "RLS garante seguranca na camada de dados, independente de bugs no frontend ou API. Impossivel vazar dados mesmo com erro de programacao. Tres niveis cobrem a hierarquia tipica de empresas de engenharia.",
+        "alternativa_rejeitada": "Filtros apenas no codigo da aplicacao — vulneravel a bypass, requer auditoria constante de cada query."
+      },
+      {
+        "id": "ADR-003",
+        "titulo": "PDF server-side com @react-pdf/renderer",
+        "decisao": "Gerar PDFs em API routes do Next.js usando @react-pdf/renderer, retornando o buffer como download.",
+        "justificativa": "Permite templates React para o PDF (consistencia visual com a UI), funciona sem dependencia de browser/puppeteer, e roda em serverless (Netlify Functions). Tamanho do bundle aceitavel (~200KB).",
+        "alternativa_rejeitada": "html2pdf/puppeteer — pesado para serverless (50MB+ de binarios), cold start de 5-10s."
+      },
+      {
+        "id": "ADR-004",
+        "titulo": "State machine de 4 estados para fluxo de aprovacao",
+        "decisao": "Fluxo linear: draft -> submitted -> approved | rejected. Status 'rejected' pode voltar para 'draft' (reabrir para correcao). Cada transicao registrada em tabela de audit log.",
+        "justificativa": "Cobre 95% dos casos de uso corporativos sem complexidade desnecessaria. Approval log com timestamp e user_id garante rastreabilidade completa para auditoria.",
+        "alternativa_rejeitada": "Workflow engine completo com estados customizaveis — overengineering para o escopo atual, pode ser evoluido futuramente."
+      },
+      {
+        "id": "ADR-005",
+        "titulo": "Totais calculados via triggers PostgreSQL",
+        "decisao": "Campos total_hours em timesheet_entries (soma dos 7 dias) e total_hours em timesheet_weeks (soma de todas as entries) sao calculados automaticamente via triggers BEFORE INSERT/UPDATE.",
+        "justificativa": "Garante consistencia dos dados independente da origem (UI, API, import CSV futuro). Evita divergencia entre soma exibida no frontend e soma real no banco. Performance aceitavel para o volume esperado (<1000 entries/semana).",
+        "alternativa_rejeitada": "Calcular apenas no frontend — risco de inconsistencia entre abas/sessoes, nao funciona para relatorios server-side."
+      },
+      {
+        "id": "ADR-006",
+        "titulo": "Tabela de projetos gerenciavel pelo admin",
+        "decisao": "Projetos sao cadastrados em tabela propria com campos name, code, client, active. Apenas admins podem criar/editar/desativar projetos. Colaboradores selecionam de uma lista de projetos ativos ao criar entries.",
+        "justificativa": "Evita inconsistencia de nomes de projeto (cada um digitando diferente). Permite desativar projetos encerrados sem perder historico. Codigo do projeto util para integracao futura com ERP.",
+        "alternativa_rejeitada": "Campo texto livre para nome do projeto — gera duplicatas e dificulta agregacao em relatorios."
+      },
+      {
+        "id": "ADR-007",
+        "titulo": "Categorias de atividade como enum fixo com extensibilidade",
+        "decisao": "Tabela activity_categories com categorias pre-definidas (Desenvolvimento, Reuniao, Suporte, Administrativo, Viagem, Treinamento). Admin pode adicionar novas categorias.",
+        "justificativa": "Categorias padronizadas permitem relatorios comparativos entre colaboradores e projetos. Extensibilidade garante adaptacao a necessidades especificas da Aero Engenharia.",
+        "alternativa_rejeitada": "Enum hardcoded no TypeScript — qualquer mudanca requer deploy."
+      }
+    ]
+  },
+  "task_assignments": {
+    "impl-database": [
+      "Criar tabela 'profiles' (id, email, full_name, role, manager_id, department, avatar_url, created_at, updated_at)",
+      "Criar tabela 'projects' (id, name, code, client, description, active, created_by, created_at, updated_at)",
+      "Criar tabela 'activity_categories' (id, name, description, color, active, created_at)",
+      "Criar tabela 'timesheet_weeks' (id, user_id, week_start, status, total_hours, submitted_at, approved_at, approved_by, rejection_reason, created_at, updated_at)",
+      "Criar tabela 'timesheet_entries' (id, timesheet_week_id, project_id, category_id, mon, tue, wed, thu, fri, sat, sun, total_hours, notes, created_at, updated_at)",
+      "Criar tabela 'approval_log' (id, timesheet_week_id, action, performed_by, comment, created_at)",
+      "Criar view 'v_timesheet_summary' — agregacao por usuario/semana com status e totais",
+      "Criar view 'v_project_hours' — horas por projeto com breakdown por categoria",
+      "Criar view 'v_team_overview' — visao do gestor com subordinados e suas horas",
+      "Criar trigger 'trg_calc_entry_total' — calcular total_hours em timesheet_entries",
+      "Criar trigger 'trg_calc_week_total' — recalcular total_hours em timesheet_weeks",
+      "Criar trigger 'trg_sync_profile' — sincronizar auth.users com profiles",
+      "Implementar RLS policy 'own_data' em timesheet_weeks — usuario ve apenas seus dados",
+      "Implementar RLS policy 'manager_view' em timesheet_weeks — gestor ve subordinados",
+      "Implementar RLS policy 'admin_all' em timesheet_weeks — admin ve tudo",
+      "Implementar RLS em todas as tabelas (profiles, projects, categories, entries, approval_log)",
+      "Criar indices compostos (user_id + week_start, project_id + category_id, status)",
+      "Criar seed data: 3 usuarios (admin, gestor, colaborador), 5 projetos, 6 categorias, dados de exemplo para 2 semanas"
+    ],
+    "devops-specialist": [
+      "Configurar netlify.toml com build settings para Next.js 14",
+      "Configurar .env.local.example com variaveis necessarias (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)",
+      "Verificar compatibilidade do @netlify/plugin-nextjs com App Router",
+      "Configurar _redirects para SPA routing"
+    ],
+    "impl-backend": [
+      "Configurar Supabase clients (browser client + server client + middleware)",
+      "Implementar middleware.ts para refresh de sessao e protecao de rotas",
+      "Criar server actions: createTimesheetWeek, updateTimesheetEntry, submitTimesheet",
+      "Criar server actions: approveTimesheet, rejectTimesheet, reopenTimesheet",
+      "Criar server action: getTimesheetWeek (com entries, projeto e categoria populated)",
+      "Criar server action: getTeamTimesheets (para gestor — lista de pendentes)",
+      "Criar server action: getDashboardData (agregacoes para graficos)",
+      "Criar API route POST /api/export/pdf — gerar PDF de timesheet individual",
+      "Criar API route POST /api/export/report — gerar PDF de relatorio gerencial",
+      "Implementar validacao Zod em todos os inputs (schemas: TimesheetEntrySchema, ApprovalSchema, ExportParamsSchema)",
+      "Criar lib/utils.ts com helpers: formatDate, getWeekRange, calculateWeekTotal, getStatusColor",
+      "Criar types/database.ts com tipos gerados do Supabase + tipos de dominio"
+    ],
+    "impl-frontend": [
+      "Criar layout principal com Sidebar, Header e area de conteudo",
+      "Criar componente Sidebar com navegacao (Timesheet, Aprovacoes, Dashboard, Projetos) e indicador de role",
+      "Criar componente Header com breadcrumb, user menu e notificacoes",
+      "Criar pagina /login com formulario email/password e branding Aero",
+      "Criar pagina /timesheet com WeekSelector e TimesheetGrid",
+      "Criar componente WeekSelector com navegacao anterior/proxima e datepicker",
+      "Criar componente TimesheetGrid com linhas editaveis, totais por coluna/linha, e botoes salvar/submeter",
+      "Criar componente EntryRow com selects de projeto/categoria e inputs numericos para cada dia",
+      "Criar pagina /aprovacoes com lista de timesheets pendentes (cards com resumo)",
+      "Criar pagina /aprovacoes/[id] com visualizacao read-only do timesheet e acoes aprovar/rejeitar",
+      "Criar pagina /dashboard com KpiCards, graficos e filtros",
+      "Criar componente KpiCards (total horas mes, horas pendentes, taxa aprovacao, projetos ativos)",
+      "Criar componente ChartHorasProjeto (barras horizontais — Recharts)",
+      "Criar componente ChartCategoriaPizza (donut chart — Recharts)",
+      "Criar componente ChartEvolucaoSemanal (line chart — Recharts)",
+      "Criar pagina /projetos para admin gerenciar projetos (CRUD simples)",
+      "Criar componentes UI base: Button, Card, Badge, Input, Select, EmptyState, LoadingSpinner, Toast",
+      "Implementar estados de loading, empty state e error em todas as paginas",
+      "Implementar layout mobile alternativo para o grid de timesheet (lista vertical de dias)",
+      "Criar hook useTimesheet para gerenciar estado do grid (add/remove row, edit cell, save, submit)",
+      "Criar hook useAuth para sessao e perfil do usuario",
+      "Criar hook useDashboard para queries agregadas com cache"
+    ],
+    "quality-supervisor": [
+      "Executar typecheck completo (tsc --noEmit) — zero erros",
+      "Verificar RLS policies com testes de acesso cruzado (usuario A tentando acessar dados de B)",
+      "Auditar acessibilidade: labels, contraste, keyboard navigation no grid",
+      "Verificar internacionalizacao: todas as strings em pt-BR, formatacao de datas e numeros",
+      "Auditar performance: bundle size, lazy loading de graficos, indices do banco",
+      "Verificar seguranca: sem secrets no client, validacao server-side, CSRF protection",
+      "Code quality: sem any, sem console.log, nomes consistentes"
+    ],
+    "docs-and-learning": [
+      "Gerar README.md com instrucoes de setup, variaveis de ambiente e comandos",
+      "Gerar ARCHITECTURE.md com diagrama de componentes e fluxo de dados",
+      "Documentar schema do banco com descricao de cada tabela e relacao",
+      "Documentar API routes com exemplos de request/response",
+      "Registrar licoes aprendidas do run no Supabase (cross_project_knowledge)"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "DEC-001",
+      "area": "autenticacao",
+      "decisao": "Supabase Auth com email/password. Perfis sincronizados via trigger on_auth_user_created.",
+      "impacto": "Marina (schema), Lucas (middleware), Sofia (login page)"
+    },
+    {
+      "id": "DEC-002",
+      "area": "autorizacao",
+      "decisao": "3 roles (colaborador, gestor, admin) armazenados em profiles.role. RLS policies referenciam esta coluna.",
+      "impacto": "Marina (RLS), Lucas (server actions), Sofia (UI condicional)"
+    },
+    {
+      "id": "DEC-003",
+      "area": "modelagem",
+      "decisao": "Timesheet organizado em 2 niveis: timesheet_weeks (cabecalho com status) e timesheet_entries (linhas com horas por dia). Relacao 1:N.",
+      "impacto": "Marina (schema), Lucas (queries), Sofia (grid)"
+    },
+    {
+      "id": "DEC-004",
+      "area": "estado",
+      "decisao": "State machine com 4 estados: draft, submitted, approved, rejected. Transicoes controladas por server actions com log de auditoria.",
+      "impacto": "Lucas (server actions), Sofia (badges/botoes condicionais)"
+    },
+    {
+      "id": "DEC-005",
+      "area": "deploy",
+      "decisao": "Netlify com @netlify/plugin-nextjs. Build command: next build. Publish dir: .next.",
+      "impacto": "Carlos (config), Marcus/Gabriela (deploy)"
+    },
+    {
+      "id": "DEC-006",
+      "area": "performance",
+      "decisao": "Views SQL para agregacoes do dashboard. Lazy loading de Recharts via next/dynamic. Indices compostos nas queries mais frequentes.",
+      "impacto": "Marina (views/indices), Lucas (queries), Sofia (dynamic imports)"
+    },
+    {
+      "id": "DEC-007",
+      "area": "ux",
+      "decisao": "Auto-save com debounce de 2s no grid de timesheet. Toast de confirmacao em acoes destrutivas. Loading skeletons em todas as paginas.",
+      "impacto": "Sofia (implementacao), Lucas (server actions idempontentes)"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "categoria": "performance",
+      "descricao": "Cold start de Netlify Functions pode impactar geracao de PDF para relatorios grandes (>52 semanas)",
+      "probabilidade": "media",
+      "impacto": "baixo",
+      "mitigacao": "Limitar relatorio PDF a maximo de 52 semanas. Implementar loading indicator com estimativa de tempo. Considerar cache de PDFs gerados."
+    },
+    {
+      "id": "RISK-002",
+      "categoria": "performance",
+      "descricao": "RLS policies complexas com JOINs em manager_id podem causar queries lentas em dashboards com muitos dados (>100 colaboradores)",
+      "probabilidade": "baixa",
+      "impacto": "medio",
+      "mitigacao": "Criar views materializadas no Supabase para agregacoes do dashboard. Adicionar indices compostos (user_id + week_start + status). Paginar resultados do dashboard."
+    },
+    {
+      "id": "RISK-003",
+      "categoria": "ux",
+      "descricao": "Grid de timesheet em telas mobile (<768px) pode ter usabilidade ruim com 7 colunas de dias + 2 colunas de projeto/categoria",
+      "probabilidade": "alta",
+      "impacto": "medio",
+      "mitigacao": "Implementar layout alternativo para mobile: lista vertical de dias em vez de grid horizontal. Usar responsive breakpoints do Tailwind (md:) para alternar entre layouts."
+    },
+    {
+      "id": "RISK-004",
+      "categoria": "dados",
+      "descricao": "Trigger de calculo de total pode criar race condition se dois tabs editarem a mesma semana simultaneamente",
+      "probabilidade": "baixa",
+      "impacto": "baixo",
+      "mitigacao": "Usar SELECT FOR UPDATE no trigger. Implementar optimistic locking com campo updated_at. Exibir warning se dados foram alterados por outra sessao."
+    },
+    {
+      "id": "RISK-005",
+      "categoria": "seguranca",
+      "descricao": "Hierarquia gestor-colaborador depende de manager_id em profiles. Se nao preenchido, gestor nao ve ninguem.",
+      "probabilidade": "media",
+      "impacto": "alto",
+      "mitigacao": "Validar que manager_id e obrigatorio para role=colaborador via constraint. Criar tela admin para gerenciar hierarquia. Fallback: admin sempre ve todos."
+    }
+  ],
+  "database_schema": {
+    "tables": [
+      {
+        "name": "profiles",
+        "description": "Perfil do usuario sincronizado com auth.users",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "references": "auth.users(id)"},
+          {"name": "email", "type": "text", "not_null": true, "unique": true},
+          {"name": "full_name", "type": "text", "not_null": true},
+          {"name": "role", "type": "text", "not_null": true, "default": "colaborador", "check": "role IN ('colaborador', 'gestor', 'admin')"},
+          {"name": "manager_id", "type": "uuid", "references": "profiles(id)", "nullable": true},
+          {"name": "department", "type": "text", "nullable": true},
+          {"name": "avatar_url", "type": "text", "nullable": true},
+          {"name": "active", "type": "boolean", "default": true},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"},
+          {"name": "updated_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "rls": ["SELECT: auth.uid() = id OR role = 'admin' OR (role = 'gestor' AND id IN subordinados)", "UPDATE: auth.uid() = id OR role = 'admin'"]
+      },
+      {
+        "name": "projects",
+        "description": "Projetos da empresa nos quais horas podem ser lancadas",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "default": "gen_random_uuid()"},
+          {"name": "name", "type": "text", "not_null": true},
+          {"name": "code", "type": "text", "not_null": true, "unique": true},
+          {"name": "client", "type": "text", "nullable": true},
+          {"name": "description", "type": "text", "nullable": true},
+          {"name": "active", "type": "boolean", "default": true},
+          {"name": "created_by", "type": "uuid", "references": "profiles(id)"},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"},
+          {"name": "updated_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "rls": ["SELECT: autenticado (todos podem ler projetos ativos)", "INSERT/UPDATE/DELETE: role = 'admin'"]
+      },
+      {
+        "name": "activity_categories",
+        "description": "Categorias de atividade (Desenvolvimento, Reuniao, Suporte, etc.)",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "default": "gen_random_uuid()"},
+          {"name": "name", "type": "text", "not_null": true, "unique": true},
+          {"name": "description", "type": "text", "nullable": true},
+          {"name": "color", "type": "text", "default": "#6B7280"},
+          {"name": "active", "type": "boolean", "default": true},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "rls": ["SELECT: autenticado (todos podem ler)", "INSERT/UPDATE/DELETE: role = 'admin'"]
+      },
+      {
+        "name": "timesheet_weeks",
+        "description": "Cabecalho do timesheet semanal — um registro por usuario por semana",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "default": "gen_random_uuid()"},
+          {"name": "user_id", "type": "uuid", "not_null": true, "references": "profiles(id)"},
+          {"name": "week_start", "type": "date", "not_null": true, "comment": "Sempre segunda-feira"},
+          {"name": "status", "type": "text", "not_null": true, "default": "draft", "check": "status IN ('draft', 'submitted', 'approved', 'rejected')"},
+          {"name": "total_hours", "type": "numeric(6,2)", "default": 0, "comment": "Calculado por trigger"},
+          {"name": "submitted_at", "type": "timestamptz", "nullable": true},
+          {"name": "approved_at", "type": "timestamptz", "nullable": true},
+          {"name": "approved_by", "type": "uuid", "nullable": true, "references": "profiles(id)"},
+          {"name": "rejection_reason", "type": "text", "nullable": true},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"},
+          {"name": "updated_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "constraints": ["UNIQUE(user_id, week_start)"],
+        "rls": [
+          "SELECT: auth.uid() = user_id (proprio) OR gestor de user_id OR admin",
+          "INSERT: auth.uid() = user_id",
+          "UPDATE: auth.uid() = user_id (se draft/rejected) OR gestor (approve/reject)",
+          "DELETE: auth.uid() = user_id AND status = 'draft'"
+        ]
+      },
+      {
+        "name": "timesheet_entries",
+        "description": "Linhas do timesheet — uma por projeto/categoria na semana",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "default": "gen_random_uuid()"},
+          {"name": "timesheet_week_id", "type": "uuid", "not_null": true, "references": "timesheet_weeks(id) ON DELETE CASCADE"},
+          {"name": "project_id", "type": "uuid", "not_null": true, "references": "projects(id)"},
+          {"name": "category_id", "type": "uuid", "not_null": true, "references": "activity_categories(id)"},
+          {"name": "mon_hours", "type": "numeric(4,2)", "default": 0, "check": "mon_hours >= 0 AND mon_hours <= 24"},
+          {"name": "tue_hours", "type": "numeric(4,2)", "default": 0, "check": "tue_hours >= 0 AND tue_hours <= 24"},
+          {"name": "wed_hours", "type": "numeric(4,2)", "default": 0, "check": "wed_hours >= 0 AND wed_hours <= 24"},
+          {"name": "thu_hours", "type": "numeric(4,2)", "default": 0, "check": "thu_hours >= 0 AND thu_hours <= 24"},
+          {"name": "fri_hours", "type": "numeric(4,2)", "default": 0, "check": "fri_hours >= 0 AND fri_hours <= 24"},
+          {"name": "sat_hours", "type": "numeric(4,2)", "default": 0, "check": "sat_hours >= 0 AND sat_hours <= 24"},
+          {"name": "sun_hours", "type": "numeric(4,2)", "default": 0, "check": "sun_hours >= 0 AND sun_hours <= 24"},
+          {"name": "total_hours", "type": "numeric(5,2)", "default": 0, "comment": "Calculado por trigger: soma dos 7 dias"},
+          {"name": "notes", "type": "text", "nullable": true},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"},
+          {"name": "updated_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "constraints": ["UNIQUE(timesheet_week_id, project_id, category_id)"],
+        "rls": ["Herda via timesheet_week_id -> timesheet_weeks.user_id"]
+      },
+      {
+        "name": "approval_log",
+        "description": "Log de auditoria de todas as acoes de aprovacao/rejeicao",
+        "columns": [
+          {"name": "id", "type": "uuid", "pk": true, "default": "gen_random_uuid()"},
+          {"name": "timesheet_week_id", "type": "uuid", "not_null": true, "references": "timesheet_weeks(id) ON DELETE CASCADE"},
+          {"name": "action", "type": "text", "not_null": true, "check": "action IN ('submitted', 'approved', 'rejected', 'reopened')"},
+          {"name": "performed_by", "type": "uuid", "not_null": true, "references": "profiles(id)"},
+          {"name": "comment", "type": "text", "nullable": true},
+          {"name": "created_at", "type": "timestamptz", "default": "now()"}
+        ],
+        "rls": ["SELECT: gestor/admin ou dono do timesheet", "INSERT: server-side via service role"]
+      }
+    ],
+    "views": [
+      {
+        "name": "v_timesheet_summary",
+        "description": "Visao resumida: usuario, semana, status, total de horas, quantidade de entries",
+        "query_hint": "JOIN timesheet_weeks + profiles + COUNT(timesheet_entries)"
+      },
+      {
+        "name": "v_project_hours",
+        "description": "Horas por projeto com breakdown por categoria e periodo",
+        "query_hint": "GROUP BY project_id, category_id com SUM de horas"
+      },
+      {
+        "name": "v_team_overview",
+        "description": "Visao do gestor: lista de subordinados com status do timesheet da semana atual",
+        "query_hint": "JOIN profiles (manager_id) + timesheet_weeks da semana corrente"
+      }
+    ],
+    "triggers": [
+      {
+        "name": "trg_calc_entry_total",
+        "table": "timesheet_entries",
+        "event": "BEFORE INSERT OR UPDATE",
+        "description": "Calcula total_hours = mon + tue + wed + thu + fri + sat + sun"
+      },
+      {
+        "name": "trg_update_week_total",
+        "table": "timesheet_entries",
+        "event": "AFTER INSERT OR UPDATE OR DELETE",
+        "description": "Recalcula timesheet_weeks.total_hours = SUM(entries.total_hours)"
+      },
+      {
+        "name": "trg_sync_profile",
+        "table": "auth.users",
+        "event": "AFTER INSERT",
+        "description": "Cria registro em profiles quando novo usuario e criado via auth"
+      }
+    ],
+    "indices": [
+      "idx_timesheet_weeks_user_week ON timesheet_weeks(user_id, week_start)",
+      "idx_timesheet_weeks_status ON timesheet_weeks(status)",
+      "idx_timesheet_entries_week ON timesheet_entries(timesheet_week_id)",
+      "idx_profiles_manager ON profiles(manager_id)",
+      "idx_profiles_role ON profiles(role)",
+      "idx_approval_log_week ON approval_log(timesheet_week_id)"
+    ]
+  },
+  "api_routes": [
+    {
+      "method": "GET",
+      "path": "/api/timesheet",
+      "description": "Listar timesheets do usuario logado (com filtros de periodo e status)",
+      "auth": "required",
+      "params": "week_start?, status?",
+      "response": "TimesheetWeek[] com entries populados"
+    },
+    {
+      "method": "POST",
+      "path": "/api/timesheet",
+      "description": "Criar novo timesheet para uma semana (se nao existir)",
+      "auth": "required",
+      "body": "{ week_start: string }",
+      "response": "TimesheetWeek criado"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/timesheet/[id]/entries",
+      "description": "Atualizar entries de um timesheet (upsert em batch)",
+      "auth": "required, owner, status=draft|rejected",
+      "body": "TimesheetEntry[]",
+      "response": "TimesheetWeek atualizado"
+    },
+    {
+      "method": "POST",
+      "path": "/api/timesheet/[id]/submit",
+      "description": "Submeter timesheet para aprovacao (muda status para submitted)",
+      "auth": "required, owner, status=draft|rejected",
+      "body": "{}",
+      "response": "TimesheetWeek com status=submitted"
+    },
+    {
+      "method": "POST",
+      "path": "/api/timesheet/[id]/approve",
+      "description": "Aprovar timesheet (gestor/admin)",
+      "auth": "required, gestor|admin",
+      "body": "{ comment?: string }",
+      "response": "TimesheetWeek com status=approved"
+    },
+    {
+      "method": "POST",
+      "path": "/api/timesheet/[id]/reject",
+      "description": "Rejeitar timesheet (gestor/admin)",
+      "auth": "required, gestor|admin",
+      "body": "{ reason: string }",
+      "response": "TimesheetWeek com status=rejected"
+    },
+    {
+      "method": "POST",
+      "path": "/api/timesheet/[id]/reopen",
+      "description": "Reabrir timesheet rejeitado (owner)",
+      "auth": "required, owner, status=rejected",
+      "body": "{}",
+      "response": "TimesheetWeek com status=draft"
+    },
+    {
+      "method": "GET",
+      "path": "/api/approvals",
+      "description": "Listar timesheets pendentes de aprovacao (gestor/admin)",
+      "auth": "required, gestor|admin",
+      "params": "status=submitted",
+      "response": "TimesheetWeek[] com user profile"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard",
+      "description": "Dados agregados para o dashboard (horas por projeto, categoria, evolucao)",
+      "auth": "required",
+      "params": "period_start, period_end, project_id?, user_id?",
+      "response": "DashboardData"
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "description": "Listar projetos ativos",
+      "auth": "required",
+      "response": "Project[]"
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects",
+      "description": "Criar novo projeto (admin)",
+      "auth": "required, admin",
+      "body": "{ name, code, client?, description? }",
+      "response": "Project criado"
+    },
+    {
+      "method": "POST",
+      "path": "/api/export/pdf",
+      "description": "Gerar PDF de timesheet individual",
+      "auth": "required",
+      "body": "{ timesheet_week_id: string }",
+      "response": "application/pdf (buffer)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/export/report",
+      "description": "Gerar PDF de relatorio gerencial",
+      "auth": "required, gestor|admin",
+      "body": "{ period_start, period_end, project_id?, user_id? }",
+      "response": "application/pdf (buffer)"
+    }
+  ],
+  "pages": [
+    {
+      "path": "/",
+      "name": "Home / Redirect",
+      "description": "Redireciona para /timesheet se logado, /login se nao",
+      "auth": "public",
+      "components": []
+    },
+    {
+      "path": "/login",
+      "name": "Login",
+      "description": "Formulario de login com email/password e branding Aero Engenharia",
+      "auth": "public",
+      "components": ["LoginForm", "AeroLogo"]
+    },
+    {
+      "path": "/timesheet",
+      "name": "Meu Timesheet",
+      "description": "Grid semanal de registro de horas com edicao inline, totalizacao automatica, botoes salvar/submeter",
+      "auth": "authenticated",
+      "role": "todos",
+      "components": ["WeekSelector", "TimesheetGrid", "EntryRow", "AddRowButton", "SubmitButton", "StatusBadge"]
+    },
+    {
+      "path": "/aprovacoes",
+      "name": "Aprovacoes",
+      "description": "Lista de timesheets pendentes de aprovacao (cards com resumo do colaborador, semana, total horas)",
+      "auth": "authenticated",
+      "role": "gestor, admin",
+      "components": ["ApprovalCard", "ApprovalFilters", "EmptyState"]
+    },
+    {
+      "path": "/aprovacoes/[id]",
+      "name": "Detalhe da Aprovacao",
+      "description": "Visualizacao read-only do timesheet com botoes aprovar/rejeitar e campo de comentario",
+      "auth": "authenticated",
+      "role": "gestor, admin",
+      "components": ["TimesheetReadOnly", "ApproveButton", "RejectButton", "CommentField", "ApprovalHistory"]
+    },
+    {
+      "path": "/dashboard",
+      "name": "Dashboard",
+      "description": "Paineis com KPIs e graficos: horas por projeto (barras), categoria (pizza), evolucao semanal (linha), filtros por periodo",
+      "auth": "authenticated",
+      "role": "todos (dados filtrados por RLS)",
+      "components": ["KpiCards", "ChartHorasProjeto", "ChartCategoriaPizza", "ChartEvolucaoSemanal", "DashboardFilters"]
+    },
+    {
+      "path": "/projetos",
+      "name": "Gerenciar Projetos",
+      "description": "CRUD de projetos: listar, criar, editar, ativar/desativar",
+      "auth": "authenticated",
+      "role": "admin",
+      "components": ["ProjectsTable", "ProjectForm", "ProjectModal"]
+    }
+  ],
+  "estimated_files": 45,
+  "file_tree_planned": [
+    "package.json",
+    "tsconfig.json",
+    "tailwind.config.ts",
+    "next.config.mjs",
+    "netlify.toml",
+    "postcss.config.js",
+    ".gitignore",
+    ".env.local.example",
+    "middleware.ts",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/app/globals.css",
+    "src/app/login/page.tsx",
+    "src/app/(authenticated)/layout.tsx",
+    "src/app/(authenticated)/timesheet/page.tsx",
+    "src/app/(authenticated)/timesheet/components/WeekSelector.tsx",
+    "src/app/(authenticated)/timesheet/components/TimesheetGrid.tsx",
+    "src/app/(authenticated)/timesheet/components/EntryRow.tsx",
+    "src/app/(authenticated)/aprovacoes/page.tsx",
+    "src/app/(authenticated)/aprovacoes/[id]/page.tsx",
+    "src/app/(authenticated)/dashboard/page.tsx",
+    "src/app/(authenticated)/dashboard/components/KpiCards.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartHorasProjeto.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartCategoriaPizza.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartEvolucaoSemanal.tsx",
+    "src/app/(authenticated)/projetos/page.tsx",
+    "src/app/api/timesheet/route.ts",
+    "src/app/api/timesheet/[id]/entries/route.ts",
+    "src/app/api/timesheet/[id]/submit/route.ts",
+    "src/app/api/timesheet/[id]/approve/route.ts",
+    "src/app/api/timesheet/[id]/reject/route.ts",
+    "src/app/api/timesheet/[id]/reopen/route.ts",
+    "src/app/api/approvals/route.ts",
+    "src/app/api/dashboard/route.ts",
+    "src/app/api/projects/route.ts",
+    "src/app/api/export/pdf/route.ts",
+    "src/app/api/export/report/route.ts",
+    "src/components/layout/Sidebar.tsx",
+    "src/components/layout/Header.tsx",
+    "src/components/layout/UserMenu.tsx",
+    "src/components/ui/Button.tsx",
+    "src/components/ui/Card.tsx",
+    "src/components/ui/Badge.tsx",
+    "src/components/ui/Select.tsx",
+    "src/components/ui/Input.tsx",
+    "src/components/ui/EmptyState.tsx",
+    "src/components/ui/LoadingSpinner.tsx",
+    "src/components/ui/Toast.tsx",
+    "src/lib/supabase/client.ts",
+    "src/lib/supabase/server.ts",
+    "src/lib/supabase/middleware.ts",
+    "src/lib/utils.ts",
+    "src/lib/validations.ts",
+    "src/lib/pdf-templates.tsx",
+    "src/types/database.ts",
+    "src/types/index.ts",
+    "src/hooks/useTimesheet.ts",
+    "src/hooks/useDashboard.ts",
+    "src/hooks/useAuth.ts",
+    "supabase/migrations/001_initial_schema.sql",
+    "supabase/migrations/002_rls_policies.sql",
+    "supabase/migrations/003_triggers.sql",
+    "supabase/migrations/004_views.sql",
+    "supabase/migrations/005_seed_data.sql"
+  ]
+}

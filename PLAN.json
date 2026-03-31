@@ -1,0 +1,230 @@
+{
+  "project_name": "aero-timesheet",
+  "description": "Sistema de registro e aprovacao de horas trabalhadas para colaboradores da Aero Engenharia, com visao semanal, fluxo de aprovacao por gestor, dashboard gerencial e exportacao PDF.",
+  "tech_stack": {
+    "framework": "Next.js 14.2 (App Router)",
+    "database": "Supabase (PostgreSQL + Auth + RLS)",
+    "styling": "Tailwind CSS 3.4 + @tailwindcss/forms",
+    "charts": "Recharts 2.15",
+    "language": "TypeScript 5.7 (strict mode)",
+    "deploy": "Netlify (plugin @netlify/plugin-nextjs)",
+    "pdf": "@react-pdf/renderer 4.x",
+    "validation": "Zod 3.24",
+    "icons": "Lucide React",
+    "dates": "date-fns 4.x"
+  },
+  "task_assignments": {
+    "Architect": [
+      "Definir schema do Supabase (tabelas, views, functions, RLS policies)",
+      "Configurar autenticacao Supabase (email/password + magic link)",
+      "Definir middleware de protecao de rotas (Next.js middleware.ts)",
+      "Estabelecer Row Level Security por cargo (colaborador/gestor/admin)"
+    ],
+    "Frontend": [
+      "Implementar layout shell (sidebar + header + content area)",
+      "Criar pagina de login/registro com Supabase Auth UI",
+      "Construir grid de timesheet semanal (seg-dom) com edicao inline",
+      "Implementar seletor de semana com navegacao anterior/proxima",
+      "Criar formulario de nova entrada (projeto, categoria, horas por dia)",
+      "Implementar pagina de aprovacoes para gestores (lista + acoes)",
+      "Construir dashboard com graficos Recharts (barras, pizza, linha)",
+      "Implementar componente de exportacao PDF"
+    ],
+    "Backend": [
+      "Criar API routes para CRUD de timesheet entries",
+      "Implementar logica de submissao (validar totais, mudar status)",
+      "Criar API de aprovacao/rejeicao com log de historico",
+      "Implementar queries agregadas para dashboard (views SQL)",
+      "Criar endpoint de geracao PDF server-side"
+    ],
+    "QA": [
+      "Testar fluxo completo: criar -> submeter -> aprovar timesheet",
+      "Testar permissoes RLS (colaborador nao ve dados de outros)",
+      "Validar responsividade mobile do grid de timesheet",
+      "Testar exportacao PDF com dados reais",
+      "Testar edge cases: semanas sem lancamentos, horas negativas, duplicatas"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "titulo": "Timesheet como grid semanal, nao diario",
+      "decisao": "Usar formato de grid segunda-a-domingo com uma linha por projeto/categoria, permitindo edicao inline de todas as horas da semana simultaneamente.",
+      "justificativa": "Padrao de mercado para timesheets corporativos. Reduz fricção — usuario preenche toda a semana de uma vez em vez de fazer 5-7 lancamentos separados.",
+      "alternativa_rejeitada": "Lancamento diario individual por entrada (mais cliques, UX inferior)"
+    },
+    {
+      "id": "ADR-002",
+      "titulo": "Supabase RLS como camada primaria de seguranca",
+      "decisao": "Usar Row Level Security do PostgreSQL via Supabase para garantir que colaboradores so vejam seus proprios timesheets, gestores vejam os de seus subordinados, e admins vejam tudo.",
+      "justificativa": "RLS garante seguranca na camada de dados, independente de bugs no frontend ou API. Impossivel vazar dados mesmo com erro de programacao.",
+      "alternativa_rejeitada": "Filtros apenas no codigo da aplicacao (vulneravel a bypass)"
+    },
+    {
+      "id": "ADR-003",
+      "titulo": "PDF gerado server-side com @react-pdf/renderer",
+      "decisao": "Gerar PDFs em API routes do Next.js usando @react-pdf/renderer, retornando o buffer como download.",
+      "justificativa": "Permite templates React para o PDF (consistencia visual), funciona sem dependencia de browser/puppeteer, e roda em serverless (Netlify Functions).",
+      "alternativa_rejeitada": "html2pdf/puppeteer (pesado para serverless, cold start alto)"
+    },
+    {
+      "id": "ADR-004",
+      "titulo": "Status machine simples com 4 estados",
+      "decisao": "Fluxo linear: rascunho -> submetido -> aprovado|rejeitado. Rejeitado pode voltar para rascunho (reabrir).",
+      "justificativa": "Cobre 95% dos casos de uso corporativos sem complexidade desnecessaria. Approval log registra todo historico.",
+      "alternativa_rejeitada": "Workflow engine completo com estados customizaveis (overengineering para o escopo)"
+    },
+    {
+      "id": "ADR-005",
+      "titulo": "Calculo de totais via triggers PostgreSQL",
+      "decisao": "total_linha em timesheet_entries e total_horas em timesheet_weeks sao calculados automaticamente via triggers BEFORE INSERT/UPDATE no Supabase.",
+      "justificativa": "Garante consistencia dos dados independente da origem (UI, API, import). Evita divergencia entre soma exibida e soma real.",
+      "alternativa_rejeitada": "Calcular apenas no frontend (risco de inconsistencia)"
+    }
+  ],
+  "implementation_plan": {
+    "wave_1_fundacao": {
+      "nome": "Fundacao e Autenticacao",
+      "duracao_estimada": "1 sessao",
+      "entregas": [
+        "Schema Supabase completo (5 tabelas, 3 views, triggers, RLS)",
+        "Configuracao Supabase client (lib/supabase.ts, middleware.ts)",
+        "Pagina de login com Supabase Auth",
+        "Layout shell (sidebar, header, user menu)",
+        "Protecao de rotas por middleware",
+        "Seed data (3 usuarios, 5 projetos)"
+      ]
+    },
+    "wave_2_timesheet_core": {
+      "nome": "Timesheet CRUD",
+      "duracao_estimada": "1-2 sessoes",
+      "entregas": [
+        "Pagina /timesheet com seletor de semana",
+        "Grid de timesheet (linhas editaveis, totais automaticos)",
+        "Adicionar/remover linhas (projeto + categoria)",
+        "Salvar rascunho (auto-save com debounce)",
+        "Botao submeter (validacao de totais > 0)",
+        "Historico de semanas anteriores"
+      ]
+    },
+    "wave_3_aprovacoes": {
+      "nome": "Fluxo de Aprovacao",
+      "duracao_estimada": "1 sessao",
+      "entregas": [
+        "Pagina /aprovacoes (lista de timesheets pendentes)",
+        "Detalhe do timesheet com visualizacao read-only",
+        "Acoes aprovar/rejeitar com comentario",
+        "Notificacao visual (badges de pendentes)",
+        "Log de historico de aprovacoes",
+        "Reabrir timesheet rejeitado"
+      ]
+    },
+    "wave_4_dashboard": {
+      "nome": "Dashboard e Relatorios",
+      "duracao_estimada": "1 sessao",
+      "entregas": [
+        "Pagina /dashboard com cards de KPIs",
+        "Grafico de barras: horas por projeto (Recharts)",
+        "Grafico de pizza: distribuicao por categoria",
+        "Grafico de linha: evolucao semanal",
+        "Filtros por periodo, projeto, colaborador",
+        "Tabela detalhada com ordenacao"
+      ]
+    },
+    "wave_5_pdf_e_polish": {
+      "nome": "Exportacao PDF e Polimento",
+      "duracao_estimada": "1 sessao",
+      "entregas": [
+        "API route /api/export/pdf com @react-pdf/renderer",
+        "Template PDF: timesheet individual (por colaborador/semana)",
+        "Template PDF: relatorio gerencial (por projeto/periodo)",
+        "Loading states e empty states em todas as paginas",
+        "Tratamento de erros com toast notifications",
+        "Responsividade mobile completa",
+        "Deploy para Netlify"
+      ]
+    }
+  },
+  "risks": [
+    {
+      "id": "RISK-001",
+      "descricao": "Cold start de Netlify Functions pode impactar geracao de PDF para relatorios grandes",
+      "probabilidade": "media",
+      "impacto": "baixo",
+      "mitigacao": "Limitar relatorio PDF a maximo de 52 semanas. Implementar loading indicator. Considerar geracao assincrona para relatorios muito grandes."
+    },
+    {
+      "id": "RISK-002",
+      "descricao": "RLS policies complexas podem causar queries lentas em dashboards com muitos dados",
+      "probabilidade": "baixa",
+      "impacto": "medio",
+      "mitigacao": "Criar views materializadas no Supabase para aggregacoes do dashboard. Adicionar indices compostos nas colunas usadas em filtros (user_id + semana_inicio + status)."
+    },
+    {
+      "id": "RISK-003",
+      "descricao": "Grid de timesheet pode ter UX ruim em telas mobile (<768px)",
+      "probabilidade": "alta",
+      "impacto": "medio",
+      "mitigacao": "Implementar layout alternativo para mobile: lista vertical de dias em vez de grid horizontal. Usar responsive breakpoints do Tailwind para alternar entre layouts."
+    }
+  ],
+  "estimated_files": 42,
+  "file_breakdown": {
+    "config_root": 7,
+    "src_app_routes": 12,
+    "src_components": 10,
+    "src_lib": 5,
+    "src_types": 2,
+    "src_hooks": 3,
+    "api_routes": 3
+  },
+  "file_tree_planned": [
+    "package.json",
+    "tsconfig.json",
+    "tailwind.config.ts",
+    "next.config.mjs",
+    "netlify.toml",
+    "postcss.config.js",
+    ".gitignore",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/app/globals.css",
+    "src/app/login/page.tsx",
+    "src/app/(authenticated)/layout.tsx",
+    "src/app/(authenticated)/timesheet/page.tsx",
+    "src/app/(authenticated)/timesheet/components/WeekSelector.tsx",
+    "src/app/(authenticated)/timesheet/components/TimesheetGrid.tsx",
+    "src/app/(authenticated)/timesheet/components/EntryRow.tsx",
+    "src/app/(authenticated)/aprovacoes/page.tsx",
+    "src/app/(authenticated)/aprovacoes/[id]/page.tsx",
+    "src/app/(authenticated)/dashboard/page.tsx",
+    "src/app/(authenticated)/dashboard/components/KpiCards.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartHorasProjeto.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartCategoriaPizza.tsx",
+    "src/app/(authenticated)/dashboard/components/ChartEvolucaoSemanal.tsx",
+    "src/app/(authenticated)/projetos/page.tsx",
+    "src/app/api/export/pdf/route.ts",
+    "src/app/api/timesheet/route.ts",
+    "src/app/api/aprovacoes/route.ts",
+    "src/components/layout/Sidebar.tsx",
+    "src/components/layout/Header.tsx",
+    "src/components/layout/UserMenu.tsx",
+    "src/components/ui/Button.tsx",
+    "src/components/ui/Card.tsx",
+    "src/components/ui/Badge.tsx",
+    "src/components/ui/Select.tsx",
+    "src/components/ui/Input.tsx",
+    "src/components/ui/EmptyState.tsx",
+    "src/lib/supabase/client.ts",
+    "src/lib/supabase/server.ts",
+    "src/lib/supabase/middleware.ts",
+    "src/lib/utils.ts",
+    "src/lib/pdf-templates.tsx",
+    "src/types/database.ts",
+    "src/types/index.ts",
+    "src/hooks/useTimesheet.ts",
+    "src/hooks/useDashboard.ts",
+    "src/hooks/useAuth.ts",
+    "middleware.ts"
+  ]
+}

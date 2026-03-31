@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "regions": ["gru1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}

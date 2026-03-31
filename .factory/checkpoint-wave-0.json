@@ -1,0 +1,49 @@
+{
+  "wave": 0,
+  "agent": "Rafael (Planner)",
+  "status": "completed",
+  "started_at": "2026-03-27T23:00:00Z",
+  "completed_at": "2026-03-27T23:15:00Z",
+  "project": "aero-timesheet",
+  "template": "crud-app",
+  "output": {
+    "plan_file": ".factory/wave-0-plan.json",
+    "decisions_count": 7,
+    "adrs_count": 7,
+    "tables_count": 6,
+    "views_count": 3,
+    "triggers_count": 3,
+    "api_routes_count": 13,
+    "pages_count": 7,
+    "risks_count": 5,
+    "estimated_files": 45,
+    "task_assignments": {
+      "impl-database": 18,
+      "devops-specialist": 4,
+      "impl-backend": 12,
+      "impl-frontend": 22,
+      "quality-supervisor": 7,
+      "docs-and-learning": 5
+    }
+  },
+  "contract_validation": {
+    "schema": "factory/agents/contracts/schemas/wave-0-planning.json",
+    "valid": true,
+    "checks": {
+      "plan.phases": "7 fases definidas (>=1 required)",
+      "plan.architecture": "pattern + stack definidos",
+      "plan.adrs": "7 ADRs documentados",
+      "task_assignments.impl-database": "18 tarefas (>=1 required)",
+      "task_assignments.impl-backend": "12 tarefas (>=1 required)",
+      "task_assignments.impl-frontend": "22 tarefas (>=3 required)",
+      "decisions": "7 decisoes (>=3 required)",
+      "risks": "5 riscos identificados"
+    }
+  },
+  "handoff_to_wave_1": {
+    "ready": true,
+    "next_agents": ["Marina (impl-database)", "Carlos (devops)"],
+    "parallel": true,
+    "dependencies": "Nenhuma — Wave 1 pode iniciar imediatamente"
+  }
+}
